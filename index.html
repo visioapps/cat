@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ordonnance d'Occlusion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google Fonts + FontAwesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/3df3e7f6e8.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      background: #f6f8fa;
+      min-height: 100vh;
+      font-family: 'Inter', Arial, sans-serif;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .container {
+      background: #fff;
+      padding: 2rem 1.1rem 1.3rem 1.1rem;
+      border-radius: 1.4rem;
+      box-shadow: 0 8px 32px rgba(34,44,54,0.09);
+      width: 98vw; max-width: 400px;
+      font-family: 'Inter', Arial, sans-serif;
+      position: relative;
+      animation: popin 0.16s;
+      display: flex; flex-direction: column; gap: 1.15rem;
+    }
+    @keyframes popin { from{transform:scale(.98);opacity:0} to{transform:scale(1);opacity:1}}
+    .title {
+      font-size: 1.13rem; font-weight: 700; color: #305788;
+      text-align: center; margin-bottom: 1.08em;
+    }
+    .dispositif-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.7em; justify-items: center; align-items: stretch;
+      margin-bottom: 0.1em; margin-top: 0.3em;
+    }
+    .dispositif-btn {
+      background: #f7fafc; border: 2px solid #e6ebf1; border-radius: 1.2em;
+      width: 60px; height: 78px; min-width:60px; max-width:60px;
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer; transition: border 0.17s, background 0.17s;
+      justify-content: center;
+      padding: 0.23em 0.3em 0.18em 0.3em;
+      position:relative;
+      margin-bottom: 0.06em;
+    }
+    .dispositif-btn.selected {
+      border: 2.5px solid #286ee6;
+      background: #f2f7fd;
+    }
+    .dispositif-btn img, .dispositif-btn .fa {
+      width: 34px; height: 34px; object-fit: contain;
+      color: #8ea2b6;
+      margin-top: 7px;
+      margin-bottom: 0.1em;
+      display:block;
+    }
+    .dispositif-btn.selected img, .dispositif-btn.selected .fa { color: #286ee6; }
+    .dispositif-label {
+      font-size: 0.92em; color: #536076;
+      text-align: center; font-weight: 500; margin-top: 0.13em;
+    }
+    .form-row {
+      margin: 0.6em 0 0.1em 0;
+      display: flex; flex-direction: column; gap: 0.8em;
+    }
+    .form-label {
+      font-size: 1em;
+      color: #58637b;
+      margin-bottom: 0.13em;
+      font-weight: 600;
+    }
+    .rdv-row {
+      display: flex; align-items: center; gap: 0.7em; margin-bottom:0.4em; justify-content: center;
+    }
+    .input-short {
+      font-size: 1.04em; border: 1.5px solid #e5e7eb;
+      border-radius: 0.7em; padding: 0.45em 0.9em;
+      background: #f9fafb; color: #253146;
+      width: 3.8em;
+      transition: border 0.18s, background 0.18s;
+      text-align: center;
+      margin-right:0.25em;
+    }
+    .input-short:focus { border-color: #286ee6; background: #fff; outline: none; }
+    .select-switch {
+      display: flex; gap: 0.35em; align-items: center;
+      border-radius: 1.6em;
+      background: #e8edf2;
+      padding: 0.19em 0.35em;
+      font-size: 1em;
+    }
+    .switch-btn {
+      border: none; background: none;
+      color: #707b91; font-weight:600;
+      font-size: 0.97em;
+      border-radius: 1.2em;
+      padding: 0.17em 0.75em;
+      cursor: pointer; transition: background 0.13s, color 0.13s;
+    }
+    .switch-btn.active {
+      background: #c6e1f7;
+      color: #186fe2;
+    }
+    .start-btn {
+      margin: 0.5em auto 0.25em auto;
+      padding: 0.75em 0;
+      background: #286ee6;
+      color: #fff; border: none; border-radius: 1.9em;
+      font-size: 1.12rem; font-weight: 600;
+      cursor: pointer; transition: background 0.16s;
+      box-shadow: 0 2px 8px rgba(59,130,246,0.07);
+      width: 98%; max-width: 310px; display: block;
+      opacity: 1;
+      letter-spacing: 0.03em;
+    }
+    .start-btn:disabled {
+      opacity: 0.45;
+      pointer-events: none;
+      background: #93b4e3;
+    }
+    .start-btn:active { background: #1b468e; }
+    #prescription {margin-top:1.2em;}
+    /* ---- MODALE ---- */
+    .modal-bg {
+      position: fixed; top:0; left:0; right:0; bottom:0;
+      background: rgba(40,48,64,0.14);
+      display: none; align-items: center; justify-content: center;
+      z-index: 2001;
+    }
+    .modal-bg.active { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 1.4rem;
+      padding: 2rem 1.1rem 1.3rem 1.1rem;
+      box-shadow: 0 8px 32px rgba(34,44,54,0.09);
+      width: 98vw; max-width: 400px;
+      font-family: 'Inter', Arial, sans-serif;
+      position: relative;
+      animation: popin 0.16s;
+    }
+    .modal-title {
+      font-size: 1.13rem; font-weight: 700; color: #305788;
+      text-align: center; margin-bottom: 1.08em;
+    }
+    .modal-tab-row {
+      display: flex; gap: 0.6em; justify-content: center; margin-bottom: 1.2em;
+    }
+    .modal-tab-btn {
+      padding: 0.35em 1.1em; border-radius: 2em; border: none;
+      background: #f3f4f6; color: #7a97b4;
+      font-weight: 600; font-size: 1.05em;
+      transition: background 0.14s, color 0.14s;
+      cursor: pointer;
+    }
+    .modal-tab-btn.active {
+      background: #e3eefa; color: #222c36; box-shadow: 0 1px 8px #eceff6;
+    }
+    .modal-Cycle-row {
+      display: flex; flex-direction: row; justify-content: center; align-items: flex-end; gap: 0.75em; margin-bottom: 0.5em; margin-top: 0.8em;
+    }
+    .modal-Cycle-col {
+      display: flex; flex-direction: column; align-items: center; min-width: 48px; position:relative;
+    }
+    .modal-Cycle-nbj {
+      font-size: 1.04em; font-weight: 700; color: #1a3870; margin-bottom: 0.15em; min-height:1.4em;
+      height: 1.4em; display:flex; align-items:end; justify-content:center;
+      transition: color 0.13s;
+    }
+    .modal-Cycle-btnplus {
+      width: 28px; height: 28px; border-radius: 50%; background: #fff;
+      border: none; color: #444; font-size: 1.25em; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; margin-bottom: 0.18em;
+      margin-top:0.04em;
+      box-shadow: 0 1px 3px #fff;
+      transition: background 0.14s;
+    }
+    .modal-Cycle-btnplus:active { background: #fff; }
+    .modal-Cycle-bubble {
+      width: 37px; height: 37px; border-radius: 50%;
+      background: #f2f3f6; border: 2px solid #e2e7ef;
+      display: flex; align-items: center; justify-content: center;
+      color: #a7bacf; font-weight: 600; font-size: 1.11em;
+      margin-bottom: 0.08em; user-select: none;
+      position: relative;
+    }
+    .modal-Cycle-bubble.OD { background: #e6f8ed; border-color: #63e5c0; color: #1aa386; }
+    .modal-Cycle-bubble.OG { background: #eef3fc; border-color: #9fbef7; color: #3565e8; }
+    .modal-Cycle-bubble.none { background: #fff; border-color: #fff; color: #fff; }
+    .modal-Cycle-btnminus {
+      width: 28px; height: 28px; border-radius: 50%; background: #fff;
+      border: none; color: #444; font-size: 1.22em; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; margin-top: 0.08em; margin-bottom: 0.12em;
+      box-shadow: 0 1px 3px #fff;
+      transition: background 0.14s;
+    }
+    .modal-Cycle-btnminus:active { background: #fff; }
+    .modal-Cycle-label {
+      font-size: 0.96em; color: #8797b0; margin-top:0.03em; font-weight: 600; letter-spacing:0.02em;
+    }
+    .modal-input-group {
+      display: flex; align-items: center; gap: 0.7em;
+      justify-content: center; margin: 1em 0 0.8em 0;
+    }
+    .modal-input-group input {
+      width: 72px; font-size: 1.04em;
+      border: 1.4px solid #e4e8f0; border-radius: 0.7em; padding: 0.5em 0.5em;
+      background: #f9fafb; color: #253146;
+      text-align: center; transition: border 0.16s;
+    }
+    .modal-input-group input:focus {
+      border-color: #222c36; outline: none;
+    }
+    .modal-summary {
+      margin: 0.9em 0 1.1em 0; color: #2c4a5c; font-size: 1.01em; font-weight: 500; text-align: center;
+      min-height: 1.6em;
+    }
+    .modal-btn {
+      width: 85%; margin: 0 auto 0.5em auto; display: block;
+      font-size: 1.09em; padding: 0.65em 0;
+      background: #222c36; color: white; border: none; border-radius: 1.5em;
+      font-weight: 600; box-shadow: 0 2px 8px #e9eef4;
+      transition: background 0.14s;
+    }
+    .modal-btn:active { background: #405168; }
+    .modal-close {
+      position: absolute; top: 0.7em; right: 1em;
+      background: none; border: none; color: #bbb; font-size: 1.3em;
+      cursor: pointer; transition: color 0.16s;
+    }
+    .modal-close:hover { color: #365474; }
+    .modal-day-labels {
+      display: flex; gap: 0.6em; justify-content: center; margin-bottom: 0.11em;
+    }
+    .modal-daylabel {
+      width: 38px; text-align: center; color: #8aa0c3; font-size: 0.93em; font-weight: 600;
+      margin-bottom:0.13em;
+    }
+    .modal-days-row {
+      display: flex; gap: 0.6em; justify-content: center; margin-bottom: 0.28em; margin-top:0.29em;
+    }
+    .modal-day { display: flex; flex-direction: column; align-items: center; min-width: 38px;}
+    .modal-bubble {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: #f2f3f6; border: 2px solid #e2e7ef;
+      color: #a7bacf; font-weight: 600; font-size: 1.09em;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; margin-bottom: 0.16em; user-select: none;
+      transition: background .13s, border .13s, color .13s;
+      position:relative;
+    }
+    .modal-bubble.selected-OD { background: #e6f8ed; border-color: #63e5c0; color: #1aa386; }
+    .modal-bubble.selected-OG { background: #eef3fc; border-color: #9fbef7; color: #3565e8; }
+    .modal-bubble.selected-none { background: #bbb; border-color: #ddd; color: #737373; }
+    .modal-bubble.selected-empty { background: #f2f3f6; border-color: #e2e7ef; color: #d2d2d2;}
+    .modal-bubble .fa-ban { font-size: 1.22em; color: #bbb; }
+    .modal-bubble .fa-xmark {font-size: 1.3em; color:#dadbdd;}
+    .modal-bubble .fa-plus {font-size: 1.3em;}
+    .modal-semaine-h {
+      margin-top: 3px; font-size: 0.96em;
+      width: 2.7em; border-radius: 1em;
+      border: 1.4px solid #c7d2ee; background: #f9fafb;
+      text-align: center; color: #2c4266; font-weight: 600;
+      box-shadow: 0 1px 3px #e7eefd;
+      transition: border 0.14s, box-shadow 0.14s;
+    }
+    @media (max-width: 500px) {
+      .container {padding: 1em 0.2em 1em 0.2em;max-width:97vw;}
+      .modal {max-width:99vw;padding:1em 0.1em 1em 0.1em;}
+      .modal-title{font-size:1em;}
+      .modal-bubble, .modal-Cycle-bubble, .modal-Cycle-btnplus, .modal-Cycle-btnminus {width:27px;height:27px;font-size:0.98em;}
+      .modal-Cycle-col{min-width:34px;}
+      .modal-input-group input{width:48px;font-size:0.94em;}
+      .modal-daylabel{font-size:0.87em;}
+      .dispositif-btn{width:41px;min-width:41px;max-width:41px;height:61px;}
+      .dispositif-btn img, .dispositif-btn .fa {width:23px;height:23px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">Ordonnance d'Occlusion</div>
+    <div class="form-row">
+      <div class="form-label">Dispositif :</div>
+      <div class="dispositif-row" id="dispositifs">
+        <div class="dispositif-btn" data-value="none" title="Pas d’occlusion">
+          <img src="rien.png" alt="Pas d'occlusion" width="38" height="38">
+          <div class="dispositif-label">Aucun</div>
+        </div>
+        <div class="dispositif-btn" data-value="peau" title="Sur peau">
+          <img src="peau.png" alt="Sur peau" width="38" height="38">
+          <div class="dispositif-label">Sur peau</div>
+        </div>
+        <div class="dispositif-btn" data-value="atropine" title="Atropine">
+          <img src="atrop.png" alt="Sous atropine" width="38" height="38">
+          <div class="dispositif-label">Sous atropine</div>
+        </div>
+        <div class="dispositif-btn" data-value="verre" title="Sur verre">
+          <img src="verre.png" alt="Sur verre" width="38" height="38">
+          <div class="dispositif-label">Sur verre</div>
+        </div>
+        <div class="dispositif-btn" data-value="ryser" title="Ryser">
+          <img src="ryser.png" alt="Ryser" width="38" height="38">
+          <div class="dispositif-label">Avec ryser</div>
+        </div>
+        <div class="dispositif-btn" data-value="pena" title="Péna">
+          <img src="pena.png" alt="Péna" width="38" height="38">
+          <div class="dispositif-label">Avec péna</div>
+        </div>
+      </div>
+    </div>
+    <button class="start-btn" id="startBtn" onclick="openModal()" disabled>Configurer le rythme</button>
+    <div class="form-row" style="margin-top:0.6em;">
+      <div class="form-label">Prochain RDV :</div>
+      <div class="rdv-row">
+        <input id="delaiRdv" class="input-short" type="number" min="1" placeholder="Nb">
+        <div class="select-switch">
+          <button type="button" class="switch-btn active" id="rdvSem">Semaines</button>
+          <button type="button" class="switch-btn" id="rdvMois">Mois</button>
+        </div>
+      </div>
+    </div>
+    <div id="prescription"></div>
+  </div>
+
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <button class="modal-close" id="modalCloseBtn"><i class="fas fa-times"></i></button>
+      <div class="modal-title">Configuration du rythme d'occlusion</div>
+      <div class="modal-tab-row">
+        <button class="modal-tab-btn active" id="tabTotal">Totale</button>
+        <button class="modal-tab-btn" id="tabCycle">Cycle</button>
+        <button class="modal-tab-btn" id="tabSemaine">Semaine</button>
+      </div>
+      <div id="modalContent"></div>
+      <div class="modal-summary" id="modalSummary"></div>
+      <button class="modal-btn" id="modalValidate">Valider</button>
+    </div>
+  </div>
+
+  <script>
+    const dispositifNoms = {
+      none: "Aucun",
+      peau: "sur Peau",
+      atropine: "Sous atropine",
+      verre: "sur Verre",
+      ryser: "avec Ryser",
+      pena: "avec Péna"
+    };
+
+    // --- Dispositif selection
+    let dispositifChoisi = null;
+    document.querySelectorAll('.dispositif-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.dispositif-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        dispositifChoisi = btn.getAttribute('data-value');
+        updateStartBtn();
+        updatePrescription();
+      }
+    });
+
+    // RDV délais switch
+    let rdvType = 'semaines';
+    let delaiRdv = '';
+    document.getElementById('rdvSem').onclick = function() {
+      rdvType = 'semaines';
+      this.classList.add('active');
+      document.getElementById('rdvMois').classList.remove('active');
+      updatePrescription();
+    };
+    document.getElementById('rdvMois').onclick = function() {
+      rdvType = 'mois';
+      this.classList.add('active');
+      document.getElementById('rdvSem').classList.remove('active');
+      updatePrescription();
+    };
+    document.getElementById('delaiRdv').oninput = function() {
+      delaiRdv = this.value;
+      updatePrescription();
+    }
+
+    // ---- MODALE
+    let tabIdx = 0;
+    let totalOeil = null;
+    let CycleCounts = {OD:0, OG:0, none:0};
+    let CycleHours = null;
+    let semaineStates = [null,null,null,null,null,null,null];
+    let semaineHours = [null,null,null,null,null,null,null];
+
+    // Resume memory (to keep config when fenêtre fermée)
+    let lastConfig = { tabIdx: 0, totalOeil: null, CycleCounts: {OD:0,OG:0,none:0}, CycleHours: null, semaineStates: [null,null,null,null,null,null,null], semaineHours: [null,null,null,null,null,null,null] };
+
+    function openModal() {
+      // Restaure la dernière config
+      tabIdx = lastConfig.tabIdx || 0;
+      totalOeil = lastConfig.totalOeil;
+      CycleCounts = {...lastConfig.CycleCounts};
+      CycleHours = lastConfig.CycleHours;
+      semaineStates = [...lastConfig.semaineStates];
+      semaineHours = [...lastConfig.semaineHours];
+      renderModal();
+      document.getElementById('modalBg').classList.add('active');
+    }
+    function closeModal() {
+      document.getElementById('modalBg').classList.remove('active');
+    }
+    document.getElementById('modalCloseBtn').onclick = closeModal;
+    document.getElementById('tabTotal').onclick = ()=>{ tabIdx=0; renderModal(); };
+    document.getElementById('tabCycle').onclick = ()=>{ tabIdx=1; renderModal(); };
+    document.getElementById('tabSemaine').onclick = ()=>{ tabIdx=2; renderModal(); };
+
+    function renderModal() {
+      let content = '';
+      if(tabIdx===0){
+        content += '</div><div class="modal-days-row" style="margin-bottom:0.8em;">';
+        ['OD','OG'].forEach((v,i)=>{
+          let klass = totalOeil===v ? (v==='OD'?'selected-OD': v==='OG'?'selected-OG':'selected-none') : '';
+          let inside = v==='OD' ? 'OD' : v==='OG' ? 'OG' : '<i class="fas fa-ban"></i>';
+          content += `<div class="modal-bubble ${klass}" data-tot="${i}">${inside}</div>`;
+        });
+        content += '</div>';
+        setTimeout(()=>{
+          document.querySelectorAll('.modal-bubble[data-tot]').forEach(bubble=>{
+            bubble.onclick=()=>{
+              totalOeil = ['OD','OG'][parseInt(bubble.getAttribute('data-tot'))];
+              updateModalSummary();
+              renderModal();
+            }
+          });
+          updateModalSummary();
+        },20);
+      }
+      if(tabIdx===1){
+        content += `<div class="modal-Cycle-row">`;
+        // OD
+        content += `<div class="modal-Cycle-col">
+            <div class="modal-Cycle-nbj" id="CycleODnb">${CycleCounts.OD}j</div>
+            <button class="modal-Cycle-btnplus" id="addOD" title="Ajouter 1j OD">+</button>
+            <div class="modal-Cycle-bubble OD">OD</div>
+            <button class="modal-Cycle-btnminus" id="remOD" title="Retirer 1j">-</button>
+          </div>`;
+        // OG
+        content += `<div class="modal-Cycle-col">
+            <div class="modal-Cycle-nbj" id="CycleOGnb">${CycleCounts.OG}j</div>
+            <button class="modal-Cycle-btnplus" id="addOG" title="Ajouter 1j OG">+</button>
+            <div class="modal-Cycle-bubble OG">OG</div>
+            <button class="modal-Cycle-btnminus" id="remOG" title="Retirer 1j">-</button>
+          </div>`;
+        // Rien
+        content += `<div class="modal-Cycle-col">
+            <div class="modal-Cycle-nbj" id="CycleNonenb">${CycleCounts.none}j</div>
+            <button class="modal-Cycle-btnplus" id="addNone" title="Ajouter 1j sans occlusion">+</button>
+            <div class="modal-Cycle-bubble none">&#128683;</div>
+            <button class="modal-Cycle-btnminus" id="remNone" title="Retirer 1j">-</button>
+          </div>`;
+        content += `</div>`;
+        content += `<div class="modal-input-group"><input id="CycleHour" type="number" min="1" max="24" placeholder="Nb d'h/j" value="${CycleHours?CycleHours:''}"><span style="color:#8392a3;">h/j</span></div>`;
+        setTimeout(()=>{
+          // Ajout + (limite max somme 7)
+          document.getElementById('addOD').onclick = ()=>{ let s=CycleCounts.OD+CycleCounts.OG+CycleCounts.none; if(s<7){CycleCounts.OD++; updateModalSummary(); renderModal();}};
+          document.getElementById('addOG').onclick = ()=>{ let s=CycleCounts.OD+CycleCounts.OG+CycleCounts.none; if(s<7){CycleCounts.OG++; updateModalSummary(); renderModal();}};
+          document.getElementById('addNone').onclick = ()=>{ let s=CycleCounts.OD+CycleCounts.OG+CycleCounts.none; if(s<7){CycleCounts.none++; updateModalSummary(); renderModal();}};
+          document.getElementById('remOD').onclick = ()=>{ if(CycleCounts.OD>0)CycleCounts.OD--; updateModalSummary(); renderModal();}
+          document.getElementById('remOG').onclick = ()=>{ if(CycleCounts.OG>0)CycleCounts.OG--; updateModalSummary(); renderModal();}
+          document.getElementById('remNone').onclick = ()=>{ if(CycleCounts.none>0)CycleCounts.none--; updateModalSummary(); renderModal();}
+          document.getElementById('CycleHour').oninput = function() {
+            CycleHours = this.value ? Math.max(1, Math.min(24, parseInt(this.value))) : null;
+            this.value = CycleHours ? CycleHours : '';
+            updateModalSummary();
+          }
+          updateModalSummary();
+        },20);
+      }
+      if(tabIdx===2){
+        const jours = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+        content += '<div class="modal-day-labels" style="justify-content:center;">';
+        for(let i=0;i<7;++i) content += `<div class="modal-daylabel">${jours[i]}</div>`;
+        content += '</div><div class="modal-days-row">';
+        for(let i=0; i<7; ++i){
+          let state = semaineStates[i];
+          let klass = state==='OD' ? 'selected-OD' : state==='OG' ? 'selected-OG' : state==='none'?'selected-none':'selected-empty';
+          let inside = state==='OD'?'OD': state==='OG'?'OG': state==='none'?'<i class="fas fa-ban"></i>':'<i class="fas fa-xmark"></i>';
+          content += `<div class="modal-day"><div class="modal-bubble ${klass}" data-sidx="${i}">${inside}</div>`;
+          // Affiche h SEULEMENT si sélectionné OD/OG/none
+          if (["OD","OG","none"].includes(state)) {
+            content += `<input type="number" class="modal-semaine-h" data-hidx="${i}" value="${semaineHours[i]!==null?semaineHours[i]:''}" placeholder="h" min="1" max="24">`;
+          }
+          content += `</div>`;
+        }
+        content += '</div>';
+        setTimeout(()=>{
+          document.querySelectorAll('.modal-bubble[data-sidx]').forEach(bubble=>{
+            bubble.onclick=()=>{
+              let i = parseInt(bubble.getAttribute('data-sidx'));
+              let s = semaineStates[i];
+              semaineStates[i] = s==='OD' ? 'OG' : s==='OG' ? null : 'OD';
+              if(semaineStates[i]===null) semaineHours[i]=null;
+              updateModalSummary();
+              renderModal();
+            }
+          });
+          document.querySelectorAll('.modal-semaine-h').forEach(inp=>{
+            inp.oninput = function(){
+              let idx = parseInt(inp.getAttribute('data-hidx'));
+              let val = inp.value ? Math.max(1, Math.min(24, parseInt(inp.value))) : null;
+              semaineHours[idx] = val;
+              inp.value = val?val:'';
+              updateModalSummary();
+            }
+          });
+          updateModalSummary();
+        },20);
+      }
+      document.getElementById('modalContent').innerHTML = content;
+      document.getElementById('modalSummary').textContent = getModalSummary();
+      ['tabTotal','tabCycle','tabSemaine'].forEach((id,i)=> {
+        document.getElementById(id).classList.toggle('active', tabIdx===i);
+      });
+    }
+    // -- PRESCRIPTION LOGIC
+    function updatePrescription() {
+      let color = "#1e3147";
+      let r = '';
+      if (dispositifChoisi === "none") {
+        r = "Pas d'occlusion";
+      } else if (dispositifChoisi === "atropine") {
+        r = "Occlusion avec protocole Atropine dans l’œil sain";
+      } else {
+        // Recup config
+        let dispText = dispositifNoms[dispositifChoisi] ? "Occlusion "+dispositifNoms[dispositifChoisi] : "";
+        let rythmText = '';
+        if(lastConfig.tabIdx === 0) {
+          if(lastConfig.totalOeil) rythmText = `7j/7 sur ${lastConfig.totalOeil}`;
+          else rythmText = 'Non configuré';
+        } else if(lastConfig.tabIdx === 1) {
+          let txts = [];
+          if(lastConfig.CycleCounts.OD) txts.push(`${lastConfig.CycleCounts.OD}j sur OD`);
+          if(lastConfig.CycleCounts.OG) txts.push(`${lastConfig.CycleCounts.OG}j sur OG`);
+          if(lastConfig.CycleCounts.none) txts.push(`${lastConfig.CycleCounts.none}j sans occlusion`);
+          rythmText = txts.join(' · ') + (lastConfig.CycleHours ? ` (${lastConfig.CycleHours}h)` : '');
+        } else {
+          const jours = ["Lu","Ma","Me","Jeu","Ve","Sa","Di"];
+          let joursOD=[], joursOG=[], joursNone=[];
+          let hOD={}, hOG={}, hNone={};
+          for(let i=0;i<7;++i){
+            let s=lastConfig.semaineStates[i], h=lastConfig.semaineHours[i];
+            if(s==='OD') { joursOD.push(jours[i]); if(h) hOD[jours[i]]=h; }
+            else if(s==='OG') { joursOG.push(jours[i]); if(h) hOG[jours[i]]=h; }
+            else if(s==='none') { joursNone.push(jours[i]); if(h) hNone[jours[i]]=h; }
+          }
+          let txts = [];
+          if(joursOD.length)
+            txts.push(`sur OD ${joursOD.map(j=> hOD[j]?`${j}(${hOD[j]}h)`:j).join(' ')} `);
+          if(joursOG.length)
+            txts.push(`sur OG ${joursOG.map(j=> hOG[j]?`${j}(${hOG[j]}h)`:j).join(' ')} `);
+          if(joursNone.length)
+            txts.push(`sans occlusion ${joursNone.map(j=> hNone[j]?`${j}(${hNone[j]}h)`:j).join(' ')} `);
+          rythmText = txts.join(' · ');
+        }
+        r = `${dispText}<br>${rythmText}`;
+      }
+      // Ajout du délai RDV si présent
+      if(delaiRdv && !isNaN(parseInt(delaiRdv))) {
+        r += `<br>A revoir dans ${delaiRdv} ${rdvType==='semaines'?'semaine'+(delaiRdv>1?'s':''):'mois'+(delaiRdv>1?'':'')}`;
+      }
+      document.getElementById('prescription').innerHTML =
+        `<div style="margin-top:1em;padding:1.1em;background:#f3f7fa;border-radius:1em;color:${color};font-size:1.03em;">
+        <b>Prescription :</b><br>${r}</div>`;
+    }
+
+    // MAJ bouton config rythme
+    function updateStartBtn() {
+      let btn = document.getElementById('startBtn');
+      btn.disabled = (!dispositifChoisi || dispositifChoisi === "none" || dispositifChoisi === "atropine");
+    }
+
+    // Dans la modale, MAJ résumé
+    function updateModalSummary() {
+      document.getElementById('modalSummary').textContent = getModalSummary();
+    }
+    function getModalSummary() {
+      if(tabIdx===0) {
+        return totalOeil ? `Occlusion 7j/7 sur ${totalOeil}` : 'Sélectionnez un œil.';
+      }
+      if(tabIdx===1) {
+        let txts = [];
+        if(CycleCounts.OD) txts.push(`${CycleCounts.OD}j sur OD`);
+        if(CycleCounts.OG) txts.push(`${CycleCounts.OG}j sur OG`);
+        if(CycleCounts.none) txts.push(`${CycleCounts.none}j sans occlusion`);
+        return txts.join(' · ') + (CycleHours ? ` (${CycleHours}h)` : '');
+      }
+      const jours = ["Lu","Ma","Me","Jeu","Ve","Sa","Di"];
+      let joursOD=[], joursOG=[], joursNone=[];
+      let hOD={}, hOG={}, hNone={};
+      for(let i=0;i<7;++i){
+        let s=semaineStates[i], h=semaineHours[i];
+        if(s==='OD') { joursOD.push(jours[i]); if(h) hOD[jours[i]]=h; }
+        else if(s==='OG') { joursOG.push(jours[i]); if(h) hOG[jours[i]]=h; }
+        else if(s==='none') { joursNone.push(jours[i]); if(h) hNone[jours[i]]=h; }
+      }
+      let txts = [];
+      if(joursOD.length)
+        txts.push(`sur OD ${joursOD.map(j=> hOD[j]?`${j}(${hOD[j]}h)`:j).join(' ')} `);
+      if(joursOG.length)
+        txts.push(`sur OG ${joursOG.map(j=> hOG[j]?`${j}(${hOG[j]}h)`:j).join(' ')} `);
+      if(joursNone.length)
+        txts.push(`sans occlusion ${joursNone.map(j=> hNone[j]?`${j}(${hNone[j]}h)`:j).join(' ')} `);
+      return txts.join(' · ');
+    }
+
+    // Validation bouton
+    document.getElementById('modalValidate').onclick = ()=>{
+      lastConfig.tabIdx = tabIdx;
+      lastConfig.totalOeil = totalOeil;
+      lastConfig.CycleCounts = {...CycleCounts};
+      lastConfig.CycleHours = CycleHours;
+      lastConfig.semaineStates = [...semaineStates];
+      lastConfig.semaineHours = [...semaineHours];
+      updatePrescription();
+      closeModal();
+    };
+
+    // INITIALISATION
+    updateStartBtn();
+    updatePrescription();
+  </script>
+</body>
+</html>
