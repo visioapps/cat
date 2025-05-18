@@ -60,9 +60,13 @@
     }
     .dispositif-btn.selected img, .dispositif-btn.selected .fa { color: #286ee6; }
     .dispositif-label {
-      font-size: 0.92em; color: #536076;
-      text-align: center; font-weight: 500; margin-top: 0.13em;
+      font-size: 0.73em;   /* plus petit ! */
+      color: #536076;
+      text-align: center;
+      font-weight: 500;
+      margin-top: 0.13em;
     }
+
     .form-row {
       margin: 0.6em 0 0.1em 0;
       display: flex; flex-direction: column; gap: 0.8em;
@@ -280,6 +284,20 @@
       .dispositif-btn{width:41px;min-width:41px;max-width:41px;height:61px;}
       .dispositif-btn img, .dispositif-btn .fa {width:23px;height:23px;}
     }
+    /* Styles pour modales Ryser/Atropine */
+    .modal-options-list {
+      display: flex; flex-direction: column; gap: 1em; align-items:center; margin-top:1.3em;margin-bottom:1.2em;
+    }
+    .modal-option-btn {
+      border: 1.5px solid #dde4f0; background: #f6f9fc;
+      border-radius: 1.2em; padding: 0.9em 1.3em; font-size:1.12em;
+      color: #224488; cursor: pointer; transition: border 0.13s, background 0.13s;
+      font-weight: 600;
+      margin-bottom:0.14em;
+    }
+    .modal-option-btn.selected, .modal-option-btn:active {
+      background: #e5f3ff; border-color: #186fe2; color:#186fe2;
+    }
   </style>
 </head>
 <body>
@@ -298,7 +316,7 @@
         </div>
         <div class="dispositif-btn" data-value="atropine" title="Atropine">
           <img src="atrop.png" alt="Sous atropine" width="38" height="38">
-          <div class="dispositif-label">Sous atropine</div>
+          <div class="dispositif-label">Atropine</div>
         </div>
         <div class="dispositif-btn" data-value="verre" title="Sur verre">
           <img src="verre.png" alt="Sur verre" width="38" height="38">
@@ -328,6 +346,24 @@
     <div id="prescription"></div>
   </div>
 
+  <!-- Modale Atropine -->
+  <div class="modal-bg" id="atropineModalBg">
+    <div class="modal">
+      <button class="modal-close" id="closeAtropineModal"><i class="fas fa-times"></i></button>
+      <div class="modal-title">Choisir le dosage d'Atropine</div>
+      <div class="modal-options-list" id="atropineOptions"></div>
+    </div>
+  </div>
+  <!-- Modale Ryser -->
+  <div class="modal-bg" id="ryserModalBg">
+    <div class="modal">
+      <button class="modal-close" id="closeRyserModal"><i class="fas fa-times"></i></button>
+      <div class="modal-title">Choisir le filtre Ryser (Bangerter)</div>
+      <div class="modal-options-list" id="ryserOptions"></div>
+    </div>
+  </div>
+
+  <!-- Modale principale -->
   <div class="modal-bg" id="modalBg">
     <div class="modal">
       <button class="modal-close" id="modalCloseBtn"><i class="fas fa-times"></i></button>
@@ -342,30 +378,89 @@
       <button class="modal-btn" id="modalValidate">Valider</button>
     </div>
   </div>
-
   <script>
-    const dispositifNoms = {
-      none: "Aucun",
-      peau: "sur Peau",
-      atropine: "Sous atropine",
-      verre: "sur Verre",
-      ryser: "avec Ryser",
-      pena: "avec Péna"
-    };
-
-    // --- Dispositif selection
+    // Tableaux pour Atropine et Ryser
+    const atropineOptions = [
+      { label: "Nourrisson", dose: "0,3" },
+      { label: "2 à 12 ans", dose: "0,5" },
+      { label: "> 12 ans et adulte", dose: "1" }
+    ];
+    const ryserFiltres = [
+      { num: "0.1", acu: "1/10" }, { num: "0.2", acu: "2/10" }, { num: "0.3", acu: "3/10" },
+      { num: "0.4", acu: "4/10" }, { num: "0.6", acu: "6/10" }, { num: "0.8", acu: "8/10" }, { num: "1.0", acu: "10/10 (transparent)" }
+    ];
+    // Variables de sélection
     let dispositifChoisi = null;
+    let selectedAtropine = null;
+    let selectedRyser = null;
+    // Sélection Dispositif
     document.querySelectorAll('.dispositif-btn').forEach(btn => {
       btn.onclick = () => {
         document.querySelectorAll('.dispositif-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         dispositifChoisi = btn.getAttribute('data-value');
-        updateStartBtn();
-        updatePrescription();
+        if (dispositifChoisi === 'atropine') openAtropineModal();
+        else if (dispositifChoisi === 'ryser') openRyserModal();
+        else {
+          updateStartBtn();
+          updatePrescription();
+        }
       }
     });
-
-    // RDV délais switch
+    // Atropine
+    function openAtropineModal() {
+      let atDiv = document.getElementById('atropineOptions');
+      atDiv.innerHTML = '';
+      atropineOptions.forEach(opt=>{
+        const btn = document.createElement('button');
+        btn.className = 'modal-option-btn' + (selectedAtropine && selectedAtropine.label===opt.label?' selected':'');
+        btn.innerText = `${opt.label} : ${opt.dose}%`;
+        btn.onclick = ()=>{
+          document.querySelectorAll('#atropineModalBg .modal-option-btn').forEach(b=>b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedAtropine = opt;
+          setTimeout(()=>{
+            closeAtropineModal();
+            updateStartBtn();
+            updatePrescription();
+          }, 250);
+        };
+        atDiv.appendChild(btn);
+      });
+      document.getElementById('atropineModalBg').classList.add('active');
+    }
+    function closeAtropineModal() {
+      document.getElementById('atropineModalBg').classList.remove('active');
+    }
+    document.getElementById('closeAtropineModal').onclick = closeAtropineModal;
+    // Ryser
+    function openRyserModal() {
+      let ryDiv = document.getElementById('ryserOptions');
+      ryDiv.innerHTML = '';
+      ryserFiltres.forEach(opt=>{
+        const btn = document.createElement('button');
+        btn.className = 'modal-option-btn' + (selectedRyser && selectedRyser.num===opt.num?' selected':'');
+        btn.innerText = `Filtre n°${opt.num} — ${opt.acu}`;
+        btn.onclick = ()=>{
+          document.querySelectorAll('#ryserModalBg .modal-option-btn').forEach(b=>b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedRyser = opt;
+          setTimeout(()=>{
+            closeRyserModal();
+            // Ouvre la modale rythme APRÈS le choix Ryser !
+            updateStartBtn();
+            openModal();
+          }, 250);
+        };
+        ryDiv.appendChild(btn);
+      });
+      document.getElementById('ryserModalBg').classList.add('active');
+    }
+    function closeRyserModal() {
+      document.getElementById('ryserModalBg').classList.remove('active');
+    }
+    document.getElementById('closeRyserModal').onclick = closeRyserModal;
+    // Switch RDV
     let rdvType = 'semaines';
     let delaiRdv = '';
     document.getElementById('rdvSem').onclick = function() {
@@ -384,20 +479,15 @@
       delaiRdv = this.value;
       updatePrescription();
     }
-
-    // ---- MODALE
+    // MODALE PRINCIPALE (Rythme) :
     let tabIdx = 0;
     let totalOeil = null;
     let CycleCounts = {OD:0, OG:0, none:0};
     let CycleHours = null;
     let semaineStates = [null,null,null,null,null,null,null];
     let semaineHours = [null,null,null,null,null,null,null];
-
-    // Resume memory (to keep config when fenêtre fermée)
     let lastConfig = { tabIdx: 0, totalOeil: null, CycleCounts: {OD:0,OG:0,none:0}, CycleHours: null, semaineStates: [null,null,null,null,null,null,null], semaineHours: [null,null,null,null,null,null,null] };
-
     function openModal() {
-      // Restaure la dernière config
       tabIdx = lastConfig.tabIdx || 0;
       totalOeil = lastConfig.totalOeil;
       CycleCounts = {...lastConfig.CycleCounts};
@@ -414,7 +504,6 @@
     document.getElementById('tabTotal').onclick = ()=>{ tabIdx=0; renderModal(); };
     document.getElementById('tabCycle').onclick = ()=>{ tabIdx=1; renderModal(); };
     document.getElementById('tabSemaine').onclick = ()=>{ tabIdx=2; renderModal(); };
-
     function renderModal() {
       let content = '';
       if(tabIdx===0){
@@ -438,21 +527,18 @@
       }
       if(tabIdx===1){
         content += `<div class="modal-Cycle-row">`;
-        // OD
         content += `<div class="modal-Cycle-col">
             <div class="modal-Cycle-nbj" id="CycleODnb">${CycleCounts.OD}j</div>
             <button class="modal-Cycle-btnplus" id="addOD" title="Ajouter 1j OD">+</button>
             <div class="modal-Cycle-bubble OD">OD</div>
             <button class="modal-Cycle-btnminus" id="remOD" title="Retirer 1j">-</button>
           </div>`;
-        // OG
         content += `<div class="modal-Cycle-col">
             <div class="modal-Cycle-nbj" id="CycleOGnb">${CycleCounts.OG}j</div>
             <button class="modal-Cycle-btnplus" id="addOG" title="Ajouter 1j OG">+</button>
             <div class="modal-Cycle-bubble OG">OG</div>
             <button class="modal-Cycle-btnminus" id="remOG" title="Retirer 1j">-</button>
           </div>`;
-        // Rien
         content += `<div class="modal-Cycle-col">
             <div class="modal-Cycle-nbj" id="CycleNonenb">${CycleCounts.none}j</div>
             <button class="modal-Cycle-btnplus" id="addNone" title="Ajouter 1j sans occlusion">+</button>
@@ -462,7 +548,6 @@
         content += `</div>`;
         content += `<div class="modal-input-group"><input id="CycleHour" type="number" min="1" max="24" placeholder="Nb d'h/j" value="${CycleHours?CycleHours:''}"><span style="color:#8392a3;">h/j</span></div>`;
         setTimeout(()=>{
-          // Ajout + (limite max somme 7)
           document.getElementById('addOD').onclick = ()=>{ let s=CycleCounts.OD+CycleCounts.OG+CycleCounts.none; if(s<7){CycleCounts.OD++; updateModalSummary(); renderModal();}};
           document.getElementById('addOG').onclick = ()=>{ let s=CycleCounts.OD+CycleCounts.OG+CycleCounts.none; if(s<7){CycleCounts.OG++; updateModalSummary(); renderModal();}};
           document.getElementById('addNone').onclick = ()=>{ let s=CycleCounts.OD+CycleCounts.OG+CycleCounts.none; if(s<7){CycleCounts.none++; updateModalSummary(); renderModal();}};
@@ -487,7 +572,6 @@
           let klass = state==='OD' ? 'selected-OD' : state==='OG' ? 'selected-OG' : state==='none'?'selected-none':'selected-empty';
           let inside = state==='OD'?'OD': state==='OG'?'OG': state==='none'?'<i class="fas fa-ban"></i>':'<i class="fas fa-xmark"></i>';
           content += `<div class="modal-day"><div class="modal-bubble ${klass}" data-sidx="${i}">${inside}</div>`;
-          // Affiche h SEULEMENT si sélectionné OD/OG/none
           if (["OD","OG","none"].includes(state)) {
             content += `<input type="number" class="modal-semaine-h" data-hidx="${i}" value="${semaineHours[i]!==null?semaineHours[i]:''}" placeholder="h" min="1" max="24">`;
           }
@@ -523,64 +607,10 @@
         document.getElementById(id).classList.toggle('active', tabIdx===i);
       });
     }
-    // -- PRESCRIPTION LOGIC
-    function updatePrescription() {
-      let color = "#1e3147";
-      let r = '';
-      if (dispositifChoisi === "none") {
-        r = "Pas d'occlusion";
-      } else if (dispositifChoisi === "atropine") {
-        r = "Occlusion avec protocole Atropine dans l’œil sain";
-      } else {
-        // Recup config
-        let dispText = dispositifNoms[dispositifChoisi] ? "Occlusion "+dispositifNoms[dispositifChoisi] : "";
-        let rythmText = '';
-        if(lastConfig.tabIdx === 0) {
-          if(lastConfig.totalOeil) rythmText = `7j/7 sur ${lastConfig.totalOeil}`;
-          else rythmText = 'Non configuré';
-        } else if(lastConfig.tabIdx === 1) {
-          let txts = [];
-          if(lastConfig.CycleCounts.OD) txts.push(`${lastConfig.CycleCounts.OD}j sur OD`);
-          if(lastConfig.CycleCounts.OG) txts.push(`${lastConfig.CycleCounts.OG}j sur OG`);
-          if(lastConfig.CycleCounts.none) txts.push(`${lastConfig.CycleCounts.none}j sans occlusion`);
-          rythmText = txts.join(' · ') + (lastConfig.CycleHours ? ` (${lastConfig.CycleHours}h)` : '');
-        } else {
-          const jours = ["Lu","Ma","Me","Jeu","Ve","Sa","Di"];
-          let joursOD=[], joursOG=[], joursNone=[];
-          let hOD={}, hOG={}, hNone={};
-          for(let i=0;i<7;++i){
-            let s=lastConfig.semaineStates[i], h=lastConfig.semaineHours[i];
-            if(s==='OD') { joursOD.push(jours[i]); if(h) hOD[jours[i]]=h; }
-            else if(s==='OG') { joursOG.push(jours[i]); if(h) hOG[jours[i]]=h; }
-            else if(s==='none') { joursNone.push(jours[i]); if(h) hNone[jours[i]]=h; }
-          }
-          let txts = [];
-          if(joursOD.length)
-            txts.push(`sur OD ${joursOD.map(j=> hOD[j]?`${j}(${hOD[j]}h)`:j).join(' ')} `);
-          if(joursOG.length)
-            txts.push(`sur OG ${joursOG.map(j=> hOG[j]?`${j}(${hOG[j]}h)`:j).join(' ')} `);
-          if(joursNone.length)
-            txts.push(`sans occlusion ${joursNone.map(j=> hNone[j]?`${j}(${hNone[j]}h)`:j).join(' ')} `);
-          rythmText = txts.join(' · ');
-        }
-        r = `${dispText}<br>${rythmText}`;
-      }
-      // Ajout du délai RDV si présent
-      if(delaiRdv && !isNaN(parseInt(delaiRdv))) {
-        r += `<br>A revoir dans ${delaiRdv} ${rdvType==='semaines'?'semaine'+(delaiRdv>1?'s':''):'mois'+(delaiRdv>1?'':'')}`;
-      }
-      document.getElementById('prescription').innerHTML =
-        `<div style="margin-top:1em;padding:1.1em;background:#f3f7fa;border-radius:1em;color:${color};font-size:1.03em;">
-        <b>Prescription :</b><br>${r}</div>`;
-    }
-
-    // MAJ bouton config rythme
     function updateStartBtn() {
       let btn = document.getElementById('startBtn');
       btn.disabled = (!dispositifChoisi || dispositifChoisi === "none" || dispositifChoisi === "atropine");
     }
-
-    // Dans la modale, MAJ résumé
     function updateModalSummary() {
       document.getElementById('modalSummary').textContent = getModalSummary();
     }
@@ -590,9 +620,20 @@
       }
       if(tabIdx===1) {
         let txts = [];
-        if(CycleCounts.OD) txts.push(`${CycleCounts.OD}j sur OD`);
-        if(CycleCounts.OG) txts.push(`${CycleCounts.OG}j sur OG`);
-        if(CycleCounts.none) txts.push(`${CycleCounts.none}j sans occlusion`);
+        let s = CycleCounts.OD+CycleCounts.OG+CycleCounts.none;
+        let OD = CycleCounts.OD || 0, OG = CycleCounts.OG || 0, none = CycleCounts.none || 0;
+        let rest = 7-s;
+        if(OD) txts.push(`${OD}j sur OD`);
+        if(OG) txts.push(`${OG}j sur OG`);
+        if(none) txts.push(`${none}j sans occlusion`);
+        // Ajout auto "jours sans occlusion" que si un seul œil choisi et none=0
+        if (s < 7 && (
+              (OD > 0 && OG === 0 && none === 0) ||
+              (OG > 0 && OD === 0 && none === 0)
+            )
+        ) {
+          txts.push(`${rest}j sans occlusion`);
+        }
         return txts.join(' · ') + (CycleHours ? ` (${CycleHours}h)` : '');
       }
       const jours = ["Lu","Ma","Me","Jeu","Ve","Sa","Di"];
@@ -613,8 +654,6 @@
         txts.push(`sans occlusion ${joursNone.map(j=> hNone[j]?`${j}(${hNone[j]}h)`:j).join(' ')} `);
       return txts.join(' · ');
     }
-
-    // Validation bouton
     document.getElementById('modalValidate').onclick = ()=>{
       lastConfig.tabIdx = tabIdx;
       lastConfig.totalOeil = totalOeil;
@@ -625,10 +664,129 @@
       updatePrescription();
       closeModal();
     };
-
-    // INITIALISATION
+    // PRESCRIPTION
+    const dispositifNoms = {
+      none: "Aucun",
+      peau: "sur Peau",
+      atropine: "Sous atropine",
+      verre: "sur Verre",
+      ryser: "avec Ryser",
+      pena: "avec Péna"
+    };
+    function updatePrescription() {
+      let color = "#1e3147";
+      let r = '';
+      let rdvTxt = '';
+      if(delaiRdv && !isNaN(parseInt(delaiRdv))) {
+        rdvTxt = `A revoir dans ${delaiRdv} ${rdvType==='semaines'?'semaine'+(delaiRdv>1?'s':''):'mois'+(delaiRdv>1?'':'')}`;
+      }
+      if (dispositifChoisi === "none") {
+        r = "Pas d'occlusion";
+      } else if (dispositifChoisi === "atropine") {
+        if(selectedAtropine && delaiRdv){
+          r = `Atropine ${selectedAtropine.dose}% : 1 goutte / jour dans l'œil sain pendant ${delaiRdv} ${rdvType==='semaines'?'semaine'+(delaiRdv>1?'s':''):'mois'+(delaiRdv>1?'':'')}.<br>${rdvTxt}`;
+        } else {
+          r = `Atropine&nbsp;: sélectionner le dosage puis remplir le délai.`;
+        }
+      } else if (dispositifChoisi === "ryser") {
+        if(selectedRyser){
+          let rythmText = '';
+          if(lastConfig.tabIdx === 0) {
+            if(lastConfig.totalOeil) rythmText = `7j/7 sur ${lastConfig.totalOeil}`;
+            else rythmText = 'Non configuré';
+          } else if(lastConfig.tabIdx === 1) {
+            let txts = [];
+            let s = (lastConfig.CycleCounts.OD||0)+(lastConfig.CycleCounts.OG||0)+(lastConfig.CycleCounts.none||0);
+            let OD = lastConfig.CycleCounts.OD||0, OG = lastConfig.CycleCounts.OG||0, none = lastConfig.CycleCounts.none||0;
+            let rest = 7-s;
+            if(OD) txts.push(`${OD}j sur OD`);
+            if(OG) txts.push(`${OG}j sur OG`);
+            if(none) txts.push(`${none}j sans occlusion`);
+            if (s < 7 && (
+                  (OD > 0 && OG === 0 && none === 0) ||
+                  (OG > 0 && OD === 0 && none === 0)
+                )
+            ) {
+              txts.push(`${rest}j sans occlusion`);
+            }
+            rythmText = txts.join(' / ') + (lastConfig.CycleHours ? ` (${lastConfig.CycleHours}h/j)` : '');
+          } else {
+            const jours = ["Lu","Ma","Me","Jeu","Ve","Sa","Di"];
+            let joursOD=[], joursOG=[], joursNone=[];
+            let hOD={}, hOG={}, hNone={};
+            for(let i=0;i<7;++i){
+              let s=lastConfig.semaineStates[i], h=lastConfig.semaineHours[i];
+              if(s==='OD') { joursOD.push(jours[i]); if(h) hOD[jours[i]]=h; }
+              else if(s==='OG') { joursOG.push(jours[i]); if(h) hOG[jours[i]]=h; }
+              else if(s==='none') { joursNone.push(jours[i]); if(h) hNone[jours[i]]=h; }
+            }
+            let txts = [];
+            if(joursOD.length)
+              txts.push(`sur OD ${joursOD.map(j=> hOD[j]?`${j}(${hOD[j]}h)`:j).join(' ')} `);
+            if(joursOG.length)
+              txts.push(`sur OG ${joursOG.map(j=> hOG[j]?`${j}(${hOG[j]}h)`:j).join(' ')} `);
+            if(joursNone.length)
+              txts.push(`sans occlusion ${joursNone.map(j=> hNone[j]?`${j}(${hNone[j]}h)`:j).join(' ')} `);
+            rythmText = txts.join(' · ');
+          }
+          r = `Filtre de Ryser n°${selectedRyser.num} (acuité résiduelle ${selectedRyser.acu.replace(' (transparent)','')})<br>${rythmText}`;
+          if(rdvTxt) r += `<br>${rdvTxt}`;
+        } else {
+          r = `Filtre de Ryser&nbsp;: choisir le filtre puis valider.`;
+        }
+      } else {
+        let dispText = dispositifNoms[dispositifChoisi] ? "Occlusion "+dispositifNoms[dispositifChoisi] : "";
+        let rythmText = '';
+        if(lastConfig.tabIdx === 0) {
+          if(lastConfig.totalOeil) rythmText = `7j/7 sur ${lastConfig.totalOeil}`;
+          else rythmText = 'Non configuré';
+        } else if(lastConfig.tabIdx === 1) {
+          let txts = [];
+          let s = (lastConfig.CycleCounts.OD||0)+(lastConfig.CycleCounts.OG||0)+(lastConfig.CycleCounts.none||0);
+          let OD = lastConfig.CycleCounts.OD||0, OG = lastConfig.CycleCounts.OG||0, none = lastConfig.CycleCounts.none||0;
+          let rest = 7-s;
+          if(OD) txts.push(`${OD}j sur OD`);
+          if(OG) txts.push(`${OG}j sur OG`);
+          if(none) txts.push(`${none}j sans occlusion`);
+          if (s < 7 && (
+                (OD > 0 && OG === 0 && none === 0) ||
+                (OG > 0 && OD === 0 && none === 0)
+              )
+          ) {
+            txts.push(`${rest}j sans occlusion`);
+          }
+          rythmText = txts.join(' / ') + (lastConfig.CycleHours ? ` (${lastConfig.CycleHours}h/j)` : '');
+        } else {
+          const jours = ["Lu","Ma","Me","Jeu","Ve","Sa","Di"];
+          let joursOD=[], joursOG=[], joursNone=[];
+          let hOD={}, hOG={}, hNone={};
+          for(let i=0;i<7;++i){
+            let s=lastConfig.semaineStates[i], h=lastConfig.semaineHours[i];
+            if(s==='OD') { joursOD.push(jours[i]); if(h) hOD[jours[i]]=h; }
+            else if(s==='OG') { joursOG.push(jours[i]); if(h) hOG[jours[i]]=h; }
+            else if(s==='none') { joursNone.push(jours[i]); if(h) hNone[jours[i]]=h; }
+          }
+          let txts = [];
+          if(joursOD.length)
+            txts.push(`sur OD ${joursOD.map(j=> hOD[j]?`${j}(${hOD[j]}h)`:j).join(' ')} `);
+          if(joursOG.length)
+            txts.push(`sur OG ${joursOG.map(j=> hOG[j]?`${j}(${hOG[j]}h)`:j).join(' ')} `);
+          if(joursNone.length)
+            txts.push(`sans occlusion ${joursNone.map(j=> hNone[j]?`${j}(${hNone[j]}h)`:j).join(' ')} `);
+          rythmText = txts.join(' · ');
+        }
+        r = `${dispText}<br>${rythmText}`;
+        if(rdvTxt) r += `<br>${rdvTxt}`;
+      }
+      document.getElementById('prescription').innerHTML =
+        `<div style="margin-top:1em;padding:1.1em;background:#f3f7fa;border-radius:1em;color:${color};font-size:1.03em;">
+        <b>Prescription :</b><br>${r}</div>`;
+    }
+    // INIT
     updateStartBtn();
     updatePrescription();
+
   </script>
 </body>
 </html>
+
